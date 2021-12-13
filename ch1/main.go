@@ -17,9 +17,20 @@ func main() {
 	flag.Parse()
 	r := newRoom()
 	r.tracer = trace.New(os.Stdout)
-	http.Handle("/", &templateHandler{filename: "chat.html"})
+
+	fs := http.FileServer(http.Dir("./static/"))
+	http.Handle("/static/", http.StripPrefix("/static", fs))
+	http.Handle("/login", &templateHandler{filename: "login.html"})
+
+	http.Handle("/auth/login/google")
+	http.Handle("/auth/callback/google")
+	http.Handle("/auth/login/github")
+	http.Handle("/auth/callback/github")
+
+	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/room", r)
 	go r.run()
+
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
