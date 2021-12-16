@@ -41,6 +41,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error when trying to get provider %s: %s", provider, err), http.StatusBadRequest)
 		}
+		gothic.GetProviderName = func(req *http.Request) (string, error) {
+			return "github", nil
+		}
 		gothic.BeginAuthHandler(w, r)
 	default:
 		user, err := gothic.CompleteUserAuth(w, r)
@@ -50,11 +53,10 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &http.Cookie{
 			Name:  "auth",
-			Value: "blah",
+			Value: user.UserID,
 			Path:  "/",
 		})
-		fmt.Fprintf(w, "%v", user)
-		// w.Header().Set("Location", "/chat")
-		// w.WriteHeader(http.StatusTemporaryRedirect)
+		w.Header().Set("Location", "/chat")
+		w.WriteHeader(http.StatusTemporaryRedirect)
 	}
 }
