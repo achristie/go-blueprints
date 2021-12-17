@@ -17,10 +17,11 @@ import (
 
 func main() {
 	addr := flag.String("addr", ":8081", "address of app")
+	secret := flag.String("secret", "test", "client secret for gh")
 	flag.Parse()
 
 	goth.UseProviders(
-		github.New("7dbca52d1333166da68e", "", "http://localhost:3000/auth/github/callback"),
+		github.New("7dbca52d1333166da68e", *secret, "http://localhost:3000/auth/github/callback"),
 	)
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		return "github", nil
