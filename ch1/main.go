@@ -13,6 +13,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
+	"github.com/stretchr/objx"
 )
 
 func main() {
@@ -33,6 +34,16 @@ func main() {
 	fs := http.FileServer(http.Dir("./static/"))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
+	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:   "auth",
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		})
+		w.Header().Set("Location", "/chat")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	})
 
 	http.HandleFunc("/auth/", loginHandler)
 
@@ -59,7 +70,7 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"Host": r.Host,
 	}
 	if authCookie, err := r.Cookie("auth"); err == nil {
-		data["UserData"] = authCookie.Value
+		data["UserData"] = objx.MustFromBase64(authCookie.Value)
 	}
 	t.templ.Execute(w, data)
 }

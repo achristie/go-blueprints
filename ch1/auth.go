@@ -7,6 +7,7 @@ import (
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/stretchr/objx"
 )
 
 type authHandler struct {
@@ -45,18 +46,25 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return "github", nil
 		}
 		gothic.BeginAuthHandler(w, r)
-	default:
+	case "callback":
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Could not complete authentication: %s", err), http.StatusBadRequest)
 			return
 		}
+		authCookie := objx.New(map[string]interface{}{
+			"name":       user.Name,
+			"avatar_url": user.AvatarURL,
+		}).MustBase64()
+
 		http.SetCookie(w, &http.Cookie{
 			Name:  "auth",
-			Value: user.UserID,
+			Value: authCookie,
 			Path:  "/",
 		})
 		w.Header().Set("Location", "/chat")
 		w.WriteHeader(http.StatusTemporaryRedirect)
+	default:
+		http.Error(w, fmt.Sprintf("Not implemented: %s", r.URL.Path), http.StatusNotFound)
 	}
 }
