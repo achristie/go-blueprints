@@ -28,7 +28,7 @@ func main() {
 		return "github", nil
 	}
 
-	r := newRoom()
+	r := newRoom(UseAuthAvatar)
 	r.tracer = trace.New(os.Stdout)
 
 	fs := http.FileServer(http.Dir("./static/"))
