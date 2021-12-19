@@ -28,12 +28,16 @@ func main() {
 		return "github", nil
 	}
 
-	r := newRoom(UseAuthAvatar)
+	r := newRoom(UseGravatar)
 	r.tracer = trace.New(os.Stdout)
 
 	fs := http.FileServer(http.Dir("./static/"))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
+	http.Handle("/avatars/",
+		http.StripPrefix("/avatars", http.FileServer(http.Dir("./avatars"))))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
+	http.Handle("/upload", &templateHandler{filename: "upload.html"})
+	http.HandleFunc("/uploader", uploaderHandler)
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:   "auth",
