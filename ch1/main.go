@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/objx"
 )
 
+var avatars Avatar = UseFileSystemAvatar
+
 func main() {
 	addr := flag.String("addr", ":8081", "address of app")
 	secret := flag.String("secret", "test", "client secret for gh")
@@ -28,7 +30,7 @@ func main() {
 		return "github", nil
 	}
 
-	r := newRoom(UseGravatar)
+	r := newRoom()
 	r.tracer = trace.New(os.Stdout)
 
 	fs := http.FileServer(http.Dir("./static/"))

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,24 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/objx"
 )
+
+type ChatUser interface {
+	UniqueID() string
+	AvatarURL() string
+}
+
+type chatUser struct {
+	goth.User
+	uniqueID string
+}
+
+func (u chatUser) UniqueID() string {
+	return u.uniqueID
+}
+
+func (u chatUser) AvatarURL() string {
+	return u.User.AvatarURL
+}
 
 type authHandler struct {
 	next http.Handler
@@ -44,9 +63,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error when trying to get provider %s: %s", provider, err), http.StatusBadRequest)
 		}
-		gothic.GetProviderName = func(req *http.Request) (string, error) {
-			return "github", nil
-		}
 		gothic.BeginAuthHandler(w, r)
 	case "callback":
 		user, err := gothic.CompleteUserAuth(w, r)
@@ -54,14 +70,18 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Could not complete authentication: %s", err), http.StatusBadRequest)
 			return
 		}
+		chatUser := &chatUser{User: user}
 		m := md5.New()
 		io.WriteString(m, strings.ToLower(user.Email))
-		userId := fmt.Sprintf("%x", m.Sum(nil))
+		chatUser.uniqueID = fmt.Sprintf("%x", m.Sum(nil))
+		avatarURL, err := avatars.GetAvatarURL(chatUser)
+		if err != nil {
+			log.Fatalln("Error when trying to GetAvatarURL", "-", err)
+		}
 		authCookie := objx.New(map[string]interface{}{
-			"userid":     userId,
+			"userid":     chatUser.uniqueID,
 			"name":       user.Name,
-			"avatar_url": user.AvatarURL,
-			"email":      user.Email,
+			"avatar_url": avatarURL,
 		}).MustBase64()
 
 		http.SetCookie(w, &http.Cookie{
